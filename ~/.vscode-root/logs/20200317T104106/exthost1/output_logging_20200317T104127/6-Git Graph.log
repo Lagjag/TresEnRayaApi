@@ -1,0 +1,8 @@
+[2020-03-17 10:41:27.883] Starting Git Graph ...
+[2020-03-17 10:41:27.992] Using git (version: 2.17.1)
+[2020-03-17 10:41:28.013] Started Git Graph - Ready to use!
+[2020-03-17 10:41:28.014] Searching workspace for new repos ...
+[2020-03-17 10:41:28.041] > git rev-parse --show-toplevel
+[2020-03-17 10:41:28.296] Completed searching workspace for new repos
+[2020-03-17 10:41:42.671] > git rev-parse --show-toplevel
+[2020-03-17 10:41:42.675] Added new repo: /var/www/html/tresEnRayaApi
