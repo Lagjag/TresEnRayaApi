@@ -3,6 +3,8 @@
 namespace App\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Nelmio\ApiDocBundle\Annotation\Model;
 use Swagger\Annotations as SWG;
@@ -45,12 +47,19 @@ class ApiController extends AbstractController
      * )
      * 
      */
-    public function crearTablero()
+    public function crearTablero(Request $request)
     {
-        return $this->json([
+        /*return $this->json([
             'message' => 'jajajajaj',
             'path' => 'src/Controller/ApiController.php',
-        ]);
+        ]);*/
+
+        $response = new Response();
+        $response->setContent(json_encode([
+            $request
+        ]));
+
+        return new Response($request);
     }
 
     /**
