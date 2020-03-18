@@ -330,6 +330,9 @@
     "symfony/polyfill-php73": {
         "version": "v1.14.0"
     },
+    "symfony/process": {
+        "version": "v4.4.5"
+    },
     "symfony/property-info": {
         "version": "v4.4.5"
     },
@@ -356,14 +359,46 @@
     "symfony/stopwatch": {
         "version": "v4.4.5"
     },
+    "symfony/translation-contracts": {
+        "version": "v2.0.1"
+    },
+    "symfony/twig-bridge": {
+        "version": "v4.4.5"
+    },
+    "symfony/twig-bundle": {
+        "version": "4.4",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "master",
+            "version": "4.4",
+            "ref": "15a41bbd66a1323d09824a189b485c126bbefa51"
+        },
+        "files": [
+            "config/packages/test/twig.yaml",
+            "config/packages/twig.yaml",
+            "templates/base.html.twig"
+        ]
+    },
     "symfony/var-dumper": {
         "version": "v4.4.5"
     },
     "symfony/var-exporter": {
         "version": "v4.4.5"
     },
+    "symfony/web-server-bundle": {
+        "version": "3.3",
+        "recipe": {
+            "repo": "github.com/symfony/recipes",
+            "branch": "master",
+            "version": "3.3",
+            "ref": "dae9b39fd6717970be7601101ce5aa960bf53d9a"
+        }
+    },
     "symfony/yaml": {
         "version": "v4.4.5"
+    },
+    "twig/twig": {
+        "version": "v3.0.3"
     },
     "webmozart/assert": {
         "version": "1.7.0"
