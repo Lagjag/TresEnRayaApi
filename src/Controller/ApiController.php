@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Entity\Tablero;
+use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -30,6 +32,37 @@ class ApiController extends AbstractController
         return $this->json([
             'message' => 'Welcome to your new controller!',
             'path' => 'src/Controller/ApiController.php',
+        ]);
+    }
+
+    /**
+     * @Route("/api/recuperar_tablero", name="app_api_crear_tablero", methods={"GET"})
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Tablero existente"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="No hay tablero existente"
+     * )
+     * 
+     */
+    public function recuperarTablero()
+    {
+        $em = $this->getDoctrine()->getManager();
+
+        $tablero = new Tablero();
+        $tablero = $em->getRepository("App:Tablero")->findBy([
+            "id" => 1,
+        ]);
+        //$myArray = json_decode(json_encode($tablero[0]), true);
+
+        return $this->json([
+            'tablero' => (isset($tablero[0]) && $tablero[0]->getEstado() !== null)? $tablero[0]->getEstado(): '',
+            'turno' => (isset($tablero[0]) && $tablero[0]->getTurno() !== null)? $tablero[0]->getTurno(): '',
+            'modo_juego' => (isset($tablero[0]) && $tablero[0]->getModoJuego() !== null)? $tablero[0]->getModoJuego(): ''
         ]);
     }
 

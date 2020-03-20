@@ -8,6 +8,11 @@ app_api:
     methods: GET
     controller: App\Controller\ApiController::index
 
+app_api_recuperar_tablero:
+    path: /api/recuperar_tablero
+    methods: GET
+    controller: App\Controller\ApiController::recuperarTablero
+
 app_api_crear_tablero:
     path: /api/crear_tablero
     methods: POST
