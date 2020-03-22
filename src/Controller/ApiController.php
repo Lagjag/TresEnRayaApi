@@ -182,6 +182,7 @@ class ApiController extends AbstractController
     public function grabarTablero(int $id, Request $request)
     {
         $varTablero = json_decode($request->getContent());
+        $em = $this->getDoctrine()->getManager();
 
         switch($varTablero->accion){
             case "nuevoMovimiento":
@@ -190,11 +191,39 @@ class ApiController extends AbstractController
                 $estadoTablero = array_merge($estadoTablero,array_slice($varTablero->estado,$varTablero->idCasilla+1));
 
                 $turno = ($varTablero->turno + 1) % 2;
-
                 
+                $tablero = $em->getRepository('App:Tablero')->find($id);
+                $tablero->setTurno($turno);
+                $tablero->setEstado($estadoTablero);
+                $em->flush();
 
                 return $this->json([
                     'tablero' => $estadoTablero,
+                    'turno' => $turno
+                ]);
+                break;
+            case "cambioModo":
+                $tablero = $em->getRepository('App:Tablero')->find($id);
+                if(strpos($varTablero->modoJuego, "IA")){
+                    $tablero->setModoJuego("IA");
+                }else if(strpos($varTablero->modoJuego, "2J")){
+                    $tablero->setModoJuego("2J");
+                }
+                $em->flush();
+
+                return $this->json([
+                    'modoJuego' => $tablero->getModoJuego()
+                ]);
+                break;
+            case 'resetTablero':
+                $estado = array_fill(0, 9, 2);
+                $turno = 0;
+
+                $tablero = $em->getRepository('App:Tablero')->find($id);
+                $em->flush();
+
+                return $this->json([
+                    'tablero' => $estado,
                     'turno' => $turno
                 ]);
                 break;
