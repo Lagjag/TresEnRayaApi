@@ -12,28 +12,20 @@ use Nelmio\ApiDocBundle\Annotation\Model;
 use Swagger\Annotations as SWG;
 
 class ApiController extends AbstractController
-{
-    /**
-     * @Route("/api/", name="app_api", methods={"GET"})
-     * 
-     * @SWG\Response(
-     *     response=200,
-     *     description="Conexión exitosa con la api"
-     * )
-     *
-     * @SWG\Response(
-     *     response=500,
-     *     description="Algo ha ocurrido"
-     * )
-     * 
-     */
-    public function index()
-    {
-        return $this->json([
-            'message' => 'Welcome to your new controller!',
-            'path' => 'src/Controller/ApiController.php',
-        ]);
-    }
+{   
+    private $patrones = [
+        //horizontal
+        [0, 1, 2],
+        [3, 4, 5],
+        [6, 7, 8],
+        //vertical
+        [0, 3, 6],
+        [1, 4, 7],
+        [2, 5, 8],
+        //diagonal
+        [0, 4, 8],
+        [2, 4, 6]
+    ];
 
     /**
      * @Route("/api/recuperar_tablero", name="app_api_crear_tablero", methods={"GET"})
@@ -54,15 +46,16 @@ class ApiController extends AbstractController
         $em = $this->getDoctrine()->getManager();
 
         $tablero = new Tablero();
-        $tablero = $em->getRepository("App:Tablero")->findBy([
-            "id" => 1,
-        ]);
-        //$myArray = json_decode(json_encode($tablero[0]), true);
-
+        $tablero = $em->getRepository("App:Tablero")->findAll();
+        $tablero = end($tablero);
+        //$tablero = serialize($tablero);
+        //$tablero = (array)$tablero;
         return $this->json([
-            'tablero' => (isset($tablero[0]) && $tablero[0]->getEstado() !== null)? $tablero[0]->getEstado(): '',
-            'turno' => (isset($tablero[0]) && $tablero[0]->getTurno() !== null)? $tablero[0]->getTurno(): '',
-            'modo_juego' => (isset($tablero[0]) && $tablero[0]->getModoJuego() !== null)? $tablero[0]->getModoJuego(): ''
+            'id' => ($tablero !== false)? $tablero->getId(): '',
+            'tablero' => ($tablero !== false)? $tablero->getEstado(): '',
+            'turno' => ($tablero !== false)? $tablero->getTurno(): '',
+            'modo_juego' => ($tablero !== false)? $tablero->getModoJuego(): '',
+            'existe' => ($tablero !== false)? true : false
         ]);
     }
 
@@ -82,17 +75,25 @@ class ApiController extends AbstractController
      */
     public function crearTablero(Request $request)
     {
+        $em = $this->getDoctrine()->getManager();
         /*return $this->json([
             'message' => 'jajajajaj',
             'path' => 'src/Controller/ApiController.php',
         ]);*/
+        $data = json_decode($request->getContent(), true);
 
-        $response = new Response();
-        $response->setContent(json_encode([
-            $request
-        ]));
+        $tablero = new Tablero();
+        $tablero->setEstado($data);
+        $tablero->setTurno(0);
+        $tablero->setModoJuego("IA");
 
-        return new Response($request);
+
+        $em->persist($tablero);
+        $em->flush();
+        
+        return $this->json([
+            $tablero->getId()
+        ]);
     }
 
     /**
@@ -118,7 +119,7 @@ class ApiController extends AbstractController
     }
 
     /**
-     * @Route("/api/modificar_tablero", name="app_api_modificar_tablero", methods={"PUT"})
+     * @Route("/api/modificar_tablero/{id}", name="app_api_modificar_tablero", methods={"GET"})
      * 
      * @SWG\Response(
      *     response=200,
@@ -131,12 +132,94 @@ class ApiController extends AbstractController
      * )
      * 
      */
-    public function modificarTablero()
-    {
+    public function modificarTablero(Request $request)
+    {   
+        $ganado = false;
+        
+        $varTablero = json_decode($request->getContent());
+        foreach($this->patrones as $patron){
+            $primeraCasilla = $varTablero->estado[$patron[0]];
+
+            if($primeraCasilla !== 2){
+                $casillasMarcadas = $this->getCasillas($varTablero->estado, $patron, $primeraCasilla);
+
+                if(count($casillasMarcadas) === 3){
+                    $casillasGanadoras = $this->iluminarCasillas($patron, $primeraCasilla);
+                    $ganado = true;
+                }
+
+            }
+        }
+
+        if(!in_array(2,$varTablero->estado) && !$ganado){
+            $movimiento = 'empatado';
+        }elseif($varTablero->modo_juego === 'IA' && $varTablero->turno === 1 && !$ganado){
+            $movimiento = 'IA';
+        }
+
         return $this->json([
-            'message' => 'borrar',
-            'path' => 'src/Controller/ApiController.php',
+            'primeraCasilla' => $primeraCasilla,
+            'casillasMarcadas' => (isset($casillasMarcadas))? $casillasMarcadas : '',
+            'casillasGanadoras' => (isset($casillasGanadoras))? $casillasGanadoras : '',
+            'movimiento' => (isset($movimiento))? $movimiento : ''
         ]);
     }
 
+    /**
+     * @Route("/api/grabar_tablero/{id}", name="app_api_grabar_tablero", methods={"PUT"})
+     * 
+     * @SWG\Response(
+     *     response=200,
+     *     description="Tablero grabado con éxito"
+     * )
+     *
+     * @SWG\Response(
+     *     response=500,
+     *     description="Error al grabar el tablero"
+     * )
+     * 
+     */
+    public function grabarTablero(int $id, Request $request)
+    {
+        $varTablero = json_decode($request->getContent());
+
+        switch($varTablero->accion){
+            case "nuevoMovimiento":
+                $estadoTablero = array_slice($varTablero->estado,0,$varTablero->idCasilla);
+                $estadoTablero[] = $varTablero->turno;
+                $estadoTablero = array_merge($estadoTablero,array_slice($varTablero->estado,$varTablero->idCasilla+1));
+
+                $turno = ($varTablero->turno + 1) % 2;
+
+                
+
+                return $this->json([
+                    'tablero' => $estadoTablero,
+                    'turno' => $turno
+                ]);
+                break;
+            default:
+        }
+    }
+
+    // Función para sacar las correspondencias de casillas
+    private function getCasillas($estadoTablero, $patron, $primeraCasilla){
+        $casillas = [];
+        foreach($estadoTablero as $clave => $valor){
+            if(in_array($clave,$patron) && $valor === $primeraCasilla){
+                array_push($casillas,$valor);
+            }
+        }
+        return $casillas;
+    }
+
+    // Función para iluminar las casillas
+    private function iluminarCasillas($patron, $primeraCasilla){
+        $casillas = [];
+        foreach($patron as $clave => $valor){
+            $id = $valor."-".$primeraCasilla;
+            array_push($casillas,$id);
+        }
+        return $casillas;
+    }
 }

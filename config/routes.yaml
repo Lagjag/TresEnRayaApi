@@ -27,3 +27,8 @@ app_api_modificar_tablero:
     path: /api/modificar_tablero
     methods: PUT
     controller: App\Controller\ApiController::modificarTablero
+
+app_api_grabar_tablero:
+    path: /api/grabar_tablero/{id}
+    methods: PUT
+    controller: App\Controller\ApiController::grabarTablero
