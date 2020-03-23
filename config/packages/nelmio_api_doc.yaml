@@ -2,7 +2,7 @@ nelmio_api_doc:
     documentation:
         info:
             title: Tres en raya
-            description: Api RESTful
+            description: Api REST
             version: 1.0.0
     areas: # to filter documented areas
         path_patterns:

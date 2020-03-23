@@ -40,6 +40,8 @@ class ApiController extends AbstractController
      *     description="No hay tablero existente"
      * )
      * 
+     * Función que recupera el tablero en caso de cerrar y querer jugar despues
+     * 
      */
     public function recuperarTablero()
     {
@@ -48,8 +50,6 @@ class ApiController extends AbstractController
         $tablero = new Tablero();
         $tablero = $em->getRepository("App:Tablero")->findAll();
         $tablero = end($tablero);
-        //$tablero = serialize($tablero);
-        //$tablero = (array)$tablero;
         return $this->json([
             'id' => ($tablero !== false)? $tablero->getId(): '',
             'tablero' => ($tablero !== false)? $tablero->getEstado(): '',
@@ -72,14 +72,13 @@ class ApiController extends AbstractController
      *     description="Error al actualizar el tablero"
      * )
      * 
+     * Función que crea el tablero en caso de que no exista
+     * 
      */
     public function crearTablero(Request $request)
     {
         $em = $this->getDoctrine()->getManager();
-        /*return $this->json([
-            'message' => 'jajajajaj',
-            'path' => 'src/Controller/ApiController.php',
-        ]);*/
+
         $data = json_decode($request->getContent(), true);
 
         $tablero = new Tablero();
@@ -97,29 +96,7 @@ class ApiController extends AbstractController
     }
 
     /**
-     * @Route("/api/borrar_tablero", name="app_api_borrar_tablero", methods={"DELETE"})
-     * 
-     * @SWG\Response(
-     *     response=200,
-     *     description="Borrado de tablero hecho"
-     * )
-     *
-     * @SWG\Response(
-     *     response=500,
-     *     description="Error al borrar el tablero"
-     * )
-     * 
-     */
-    public function borrarTablero()
-    {
-        return $this->json([
-            'message' => 'borrar',
-            'path' => 'src/Controller/ApiController.php',
-        ]);
-    }
-
-    /**
-     * @Route("/api/modificar_tablero/{id}", name="app_api_modificar_tablero", methods={"GET"})
+     * @Route("/api/modificar_tablero/", name="app_api_modificar_tablero", methods={"PUT"})
      * 
      * @SWG\Response(
      *     response=200,
@@ -130,6 +107,8 @@ class ApiController extends AbstractController
      *     response=500,
      *     description="Error al modificar tablero"
      * )
+     * 
+     * Función que calcula como se queda el tablero
      * 
      */
     public function modificarTablero(Request $request)
@@ -145,6 +124,8 @@ class ApiController extends AbstractController
 
                 if(count($casillasMarcadas) === 3){
                     $casillasGanadoras = $this->iluminarCasillas($patron, $primeraCasilla);
+                    $fichaGanadora = explode("-",$casillasGanadoras[0]);
+                    $fichaGanadora = $fichaGanadora[1];
                     $ganado = true;
                 }
 
@@ -159,6 +140,7 @@ class ApiController extends AbstractController
 
         return $this->json([
             'primeraCasilla' => $primeraCasilla,
+            'fichaGanadora' => (isset($fichaGanadora))? $fichaGanadora : '',
             'casillasMarcadas' => (isset($casillasMarcadas))? $casillasMarcadas : '',
             'casillasGanadoras' => (isset($casillasGanadoras))? $casillasGanadoras : '',
             'movimiento' => (isset($movimiento))? $movimiento : ''
@@ -178,6 +160,8 @@ class ApiController extends AbstractController
      *     description="Error al grabar el tablero"
      * )
      * 
+     * Función que graba el tablero dependiendo el parámetro de entrada
+     * 
      */
     public function grabarTablero(int $id, Request $request)
     {
@@ -185,7 +169,7 @@ class ApiController extends AbstractController
         $em = $this->getDoctrine()->getManager();
 
         switch($varTablero->accion){
-            case "nuevoMovimiento":
+            case 'nuevoMovimiento':
                 $estadoTablero = array_slice($varTablero->estado,0,$varTablero->idCasilla);
                 $estadoTablero[] = $varTablero->turno;
                 $estadoTablero = array_merge($estadoTablero,array_slice($varTablero->estado,$varTablero->idCasilla+1));
@@ -202,13 +186,72 @@ class ApiController extends AbstractController
                     'turno' => $turno
                 ]);
                 break;
-            case "cambioModo":
+            case 'movimientoIA':
+                $puntosIA = [0 => 2, 1 => 0, 2 => 1];
+                $vacios = [];
+                $puntos = [];
+
+                foreach($varTablero->estado as $clave => $valor){
+                    if($valor === 2){
+                        $vacios[]=$clave;
+                    }
+                }
+                
+                foreach($vacios as $clave => $valor){
+                    $punto = 0;
+                    foreach($this->patrones as $patron){
+                        if(in_array($valor,$patron)){ 
+                            $conteoX=0;
+                            $conteoO=0;
+                            
+                            foreach($patron as $valorPatron){
+                                if($varTablero->estado[$valorPatron] === 0){
+                                    $conteoX++;
+                                }else if($varTablero->estado[$valorPatron] === 1){
+                                    $conteoO++;
+                                }
+                                if($valorPatron === $valor){
+                                    $punto = $punto + 0;
+                                }else{
+                                    $punto = $punto + $puntosIA[$varTablero->estado[$valorPatron]];
+                                }
+                            }
+                            if($conteoX >= 2){
+                                $punto += 10;
+                            }
+                            if($conteoO >= 2){
+                                $punto += 20;
+                            }
+                        }
+                    }
+                    $puntos[]=$punto;
+                }
+
+                $indiceMaximo = 0;
+                $valorMaximo = 0;
+                foreach($puntos as $clave => $valor){
+                    if($valor >= $valorMaximo){
+                        $indiceMaximo = $clave;
+                        $valorMaximo = $valor;
+                    }
+                }
+                
+                return $this->json([
+                    'valorIA' => $vacios[$indiceMaximo],
+                ]);
+                break;
+            case 'cambioModo':
+                $estadoTablero = array_fill(0, 9, 2);
+                $turno = 0;
+
                 $tablero = $em->getRepository('App:Tablero')->find($id);
                 if(strpos($varTablero->modoJuego, "IA")){
                     $tablero->setModoJuego("IA");
                 }else if(strpos($varTablero->modoJuego, "2J")){
                     $tablero->setModoJuego("2J");
                 }
+                $tablero->setTurno($turno);
+                $tablero->setEstado($estadoTablero);
                 $em->flush();
 
                 return $this->json([
@@ -216,14 +259,16 @@ class ApiController extends AbstractController
                 ]);
                 break;
             case 'resetTablero':
-                $estado = array_fill(0, 9, 2);
+                $estadoTablero = array_fill(0, 9, 2);
                 $turno = 0;
 
                 $tablero = $em->getRepository('App:Tablero')->find($id);
+                $tablero->setTurno($turno);
+                $tablero->setEstado($estadoTablero);
                 $em->flush();
 
                 return $this->json([
-                    'tablero' => $estado,
+                    'tablero' => $estadoTablero,
                     'turno' => $turno
                 ]);
                 break;
@@ -247,7 +292,7 @@ class ApiController extends AbstractController
         $casillas = [];
         foreach($patron as $clave => $valor){
             $id = $valor."-".$primeraCasilla;
-            array_push($casillas,$id);
+            $casillas[]=$id;
         }
         return $casillas;
     }

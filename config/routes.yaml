@@ -18,11 +18,6 @@ app_api_crear_tablero:
     methods: POST
     controller: App\Controller\ApiController::crearTablero
 
-app_api_borrar_tablero:
-    path: /api/borrar_tablero
-    methods: DELETE
-    controller: App\Controller\ApiController::borrarTablero
-
 app_api_modificar_tablero:
     path: /api/modificar_tablero
     methods: PUT
